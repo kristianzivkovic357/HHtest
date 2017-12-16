@@ -1,0 +1,28 @@
+﻿
+{
+	"websitename":"mojtrg",
+	"images":"id(PicturesContainer)",
+	"pickInList":
+	{
+	"cena":"children().eq(1).children().eq(5).text().returnStringBeforeValues([\"/\"])",
+	"naslov":"children().eq(1).children().eq(4).text()",
+	"link":"children().eq(0).children().eq(0).children().eq(0).attr(href)",
+	"slika":"children().eq(0).children().eq(0).children().eq(0).children().eq(0).attr(src)"
+	},
+	"pickInAdvert":
+	{
+		"opis":"class(well well-small noback nomargin hidden-overflow).text()"
+	},
+	"lokacijaOptions":{"format":"$grad;", "charsToDelete":"/()_"},
+	"host":"www.mojtrg.rs",
+	"linkPrefix":"https://",
+	"class":[".row.row-listing ",".row.row-listing.colored"],
+	"existingPromoClasses":["row row-listing colored","row row-listing "],
+	"vrsta":{"putanja":"attr(class)","UkupanBroj":2},
+	"binders":{"Broj soba":"!@#brojsoba","Površina":"!@#kvadratura","Lokacija":"!@#lokacija","Adresa":"!@#adresa"},
+	"path":[{"FiksniBrojStrana":670,"nacin":"prodaja","tip":"stan","put":"/Oglasi/Cela-Srbija/Stanovi?Types=ForSale&Page="},{"FiksniBrojStrana":157,"nacin":"Izdavanje","tip":"stan","put":"/Oglasi/Cela-Srbija/Stanovi?Types=ForRent&Page="},{"FiksniBrojStrana":305,"nacin":"prodaja","tip":"kuca","put":"/Oglasi/Cela-Srbija/Kuće-i-vile?Types=ForSale&Page="},{"FiksniBrojStrana":20,"nacin":"Izdavanje","tip":"kuca","put":"/Oglasi/Cela-Srbija/Kuće-i-vile?Types=ForRent&Page="},{"FiksniBrojStrana":59,"nacin":"prodaja","tip":"zemljiste","put":"/Oglasi/Cela-Srbija/Placevi-Njive-i-farme?Types=ForSale&Page="},{"FiksniBrojStrana":4,"nacin":"Izdavanje","tip":"zemljiste","put":"/Oglasi/Cela-Srbija/Placevi-Njive-i-farme?Types=ForRent&Page="},{"FiksniBrojStrana":29,"nacin":"Izdavanje","tip":"soba","put":"/Oglasi/Cela-Srbija/Sobe?Types=ForRent&Page="}],
+	"data":{"1":"class(well well-small well-normal nomargin).children().eq(3).html()"},
+	"shouldCrawl":1,
+	"phantomSupport":"true",
+	"defaultImage":"/Content/Images/nothumbnail.png"
+}

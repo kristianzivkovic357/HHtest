@@ -1,0 +1,31 @@
+This file is used to describe every version and its changes from the older ones.
+
+*********************************************************************************************************************
+
+"v1.0.2"
+changed program flow, GetData algorithm changed completely to be 1:4 in use of uzmiSve, changed memorising previousState bug,
+ added nekretnine.rs to testing
+
+**this version needs to be tested more specifically to determine the quality
+*********************************************************************************************************************
+
+
+*********************************************************************************************************************
+
+"v1.0.1"
+Features: fixed algorithm for ending crawler when it reaches fixed limit of pages(for UzmiSve=1) and limit for dynamic limit of alerts.
+Basically completely changed algorithm for breaking. Halooglasi had changed css classes which caused bugs, now its fixed.
+Phantomjs crashes should be handled, this caused "freezing" of server.
+
+*********************************************************************************************************************
+
+*********************************************************************************************************************
+
+"v1.0.0"
+Features: fixed starting mechanism of server, its now time controlled to check the current flow.
+Fixed priority bug which caused slow alert gathering. Debugging system now readable and easy.
+fixed BrojOglasaKlase double bug which may have caused the alert malfunction.
+q.txt changed. Mechanism of breaking adverts of different classes(promo, top, standard...) fixed.
+Improved mechanism of breaking when the pageNumber is greater than maximum on the website.
+
+*********************************************************************************************************************
