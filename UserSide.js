@@ -10,6 +10,7 @@ var mail=require("./mail");
 var fs=require('fs');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy
+const FacebookStrategy = require('passport-facebook').Strategy;
 var registerHtmlString;
 fs.readFile('public/register.html',function(err,res)
 {
@@ -30,10 +31,29 @@ passport.use(new LocalStrategy(
        }
  
        // Always use hashed passwords and fixed time comparison
-      return done(null,user);
+      if(password==user.password)
+      {
+        return done(null,user);
+      }
+      
      })
    }
  ))
+ 
+ 
+passport.use(new FacebookStrategy({
+   clientID: FACEBOOK_APP_ID,
+   clientSecret: FACEBOOK_APP_SECRET,
+   callbackURL: "http://www.example.com/auth/facebook/callback"
+ },
+ function(accessToken, refreshToken, profile, done) 
+ {
+   User.findOrCreate( function(err, user) {
+     if (err) { return done(err); }
+     done(null, user);
+   });
+ }
+));
 
 app.use(session({
   cookieName: 'session',
