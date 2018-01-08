@@ -18,42 +18,9 @@ fs.readFile('public/register.html',function(err,res)
   else registerHtmlString=res.toString();
   //console.log(registerHtmlString.toString())
 })
-passport.use(new LocalStrategy(
-  (username, password, done) => {
-     checkIfUserExists(username, (err, user) => {
-       if (err) {
-         return done(err)
-       }
- 
-       // User not found
-       if (!user) {
-         return done(null, false)
-       }
- 
-       // Always use hashed passwords and fixed time comparison
-      if(password==user.password)
-      {
-        return done(null,user);
-      }
-      
-     })
-   }
- ))
+
  
  
-passport.use(new FacebookStrategy({
-   clientID: FACEBOOK_APP_ID,
-   clientSecret: FACEBOOK_APP_SECRET,
-   callbackURL: "http://www.example.com/auth/facebook/callback"
- },
- function(accessToken, refreshToken, profile, done) 
- {
-   User.findOrCreate( function(err, user) {
-     if (err) { return done(err); }
-     done(null, user);
-   });
- }
-));
 
 app.use(session({
   cookieName: 'session',
@@ -115,33 +82,27 @@ function checkIfUserExists(email,callback)
 
 
 
-
-
-
-
-
-
-
 app.use(function(req, res, next)
 {
   try{
     if((req.url!='/')&&(req.url!='/login')&&(req.url!='images/no-image.jpg')&&(req.url!='/register')&&(req.url!='/css')&&(req.url!='/endpoint')&&(req.url!='/landing')&&(req.url.indexOf('/home'))&&(req.url!='/radio'))
     {
-      
-      if(req.isAuthenticated())
+      if(req.session.user.email)
       {
-        next()
+        next();
+      }
+      else if(req.session.user.uniqueDeviceId)
+      {
+       next();
       }
       else
-        {
-          var obj={};
-          obj.session="NO_SESSION";
-          res.send(obj);
-          res.end();
-        }
+      {
+        var obj={};
+        obj.session="NO_SESSION";
+        res.send(obj);
+      }
     }
     else next();
-   
   }
   catch(err){
     console.log("Error - app.use:"+err);
@@ -359,11 +320,12 @@ app.get('/confirmation/:code',function(req,res)
 })
 app.post('/register',function(req,res)
 {
+  var users=db.collection('users');
   try{
     console.log('REGISTER');
     if((req.body.password==req.body.pass2)&&(req.body.password)&& req.body.email)
     {
-      var users=db.collection('users');
+      
       
       users.find({"email":req.body.email,"password":req.body.password},{}).toArray(function(err,re)
       {
@@ -440,14 +402,41 @@ app.post('/register',function(req,res)
     }
     else
     {
-      console.log('NE VALJA ')
-      if(req.headers.aplikacija) {
-        console.log('aplikacija')
-        res.send('-2')
-      } else {
-        res.writeHead(302,{'Location':'/register'})
+      if(req.body.uniqueDeviceId)
+      {
+        //we have only device 
+        users.findOne({uniqueDeviceId:uniqueDeviceId},function(err,res)
+        {
+            if(res)
+            {
+              //we already have this user
+            }
+            else
+            {
+              users.insert({uniqueDeviceId:uniqueDeviceId},function(err,res)
+              {
+                  if(res)
+                  {
+                    //user inserted filling the session
+                    req.session.user.uniqueDeviceId=uniqueDeviceId;
+                    res.send('1');
+                    res.end();
+                  }
+              })
+            }
+        })
       }
-      res.end();
+        else
+        {
+          console.log('NE VALJA ')
+          if(req.headers.aplikacija) {
+            console.log('aplikacija')
+            res.send('-2')
+          } else {
+            res.writeHead(302,{'Location':'/register'})
+          }
+          res.end();
+        }
     }
   }
   catch(err){
