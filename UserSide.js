@@ -327,7 +327,7 @@ app.post('/register',function(req,res)
     {
       
       
-      users.find({"email":req.body.email,"password":req.body.password},{}).toArray(function(err,re)
+      users.find({"email":req.body.email},{}).toArray(function(err,re)
       {
         users.find().sort({id:-1}).limit(1).toArray(function(err,maxUserId)
         {
@@ -349,46 +349,68 @@ app.post('/register',function(req,res)
           {
             if(validateEmail(req.body.email))
             {
-              //send email here
-              //console.log('Nema takvog usera i bice kreiran');
-              var obj={};obj.email=req.body.email;obj.password=req.body.password;
-              //generating confirmation hash
-              obj.code=generateHash(75);
-              obj.timeOfCreation=new Date();
-              if(maxUserId.length)obj.id=maxUserId[0].id+1;
-              else obj.id=1;
-              req.session.user = obj;
-              console.log('USER INSERTED');
-              console.log(obj)
-              users.insert(obj,function(err,r)
-              {
-                if(!err)
+                if(req.body.uniqueDeviceId)
                 {
-                  //console.log('mail tobe sent');
-                  try
+                  users.findOne({uniqueDeviceId:req.body.uniqueDeviceId},function(err,obj)
                   {
-                    //console.log(req.session.user.email);
-                    mail.sendMail('homehunterestates@gmail.com',req.session.user.email,'Uspesna Registracija!',registerHtmlString);
-                  }
-                  catch(error)
-                  {
-                    console.log(error);
-                  }
-                  finally
-                  {
-                    console.log('create user:'+req.body.email);
-                    if(req.headers.aplikacija) {
-                      console.log('aplikacija')
-                      res.send('1');
-                    } else {
-                      res.writeHead(302,{'Location':'/home'})
-                    }
-                    res.end();
-                  }
-                  
-                }
-                else console.log(err);
-              });
+                      if(!obj)//if we had the device then we will only append email and other info to the db
+                      {
+                        obj={};
+                      }
+                      
+                      
+                                  //send email here
+                        //console.log('Nema takvog usera i bice kreiran');
+                        obj.email=req.body.email;obj.password=req.body.password;
+                        //generating confirmation hash
+                        obj.code=generateHash(75);
+                        obj.timeOfCreation=new Date();
+                        if(maxUserId.length)obj.id=maxUserId[0].id+1;
+                        else obj.id=1;
+                        req.session.user = obj;
+                        console.log('USER INSERTED');
+                        console.log(obj)
+                        users.update({uniqueDeviceId:req.body.uniqueDeviceId},obj,{upsert:true},function(err,r)
+                        {
+                          if(!err)
+                          {
+                            //console.log('mail tobe sent');
+                            try
+                            {
+                              //console.log(req.session.user.email);
+                              mail.sendMail('homehunterestates@gmail.com',req.session.user.email,'Uspesna Registracija!',registerHtmlString);
+                            }
+                            catch(error)
+                            {
+                              console.log(error);
+                            }
+                            finally
+                            {
+                              console.log('create user:'+req.body.email);
+                              if(req.headers.aplikacija) {
+                                console.log('aplikacija')
+                                res.send('1');
+                              } else {
+                                res.writeHead(302,{'Location':'/home'})
+                              }
+                              res.end();
+                            }
+                            
+                          }
+                          else console.log(err);
+                        });
+                      
+
+                  })
+              }
+              else
+              {
+                console.log('missing device id');
+                res.send("-5");
+                res.end();
+
+              }
+              
             }
             else
             {
@@ -401,33 +423,7 @@ app.post('/register',function(req,res)
       
     }
     else
-    {
-      if(req.body.uniqueDeviceId)
       {
-        //we have only device 
-        users.findOne({uniqueDeviceId:uniqueDeviceId},function(err,res)
-        {
-            if(res)
-            {
-              //we already have this user
-            }
-            else
-            {
-              users.insert({uniqueDeviceId:uniqueDeviceId},function(err,res)
-              {
-                  if(res)
-                  {
-                    //user inserted filling the session
-                    req.session.user.uniqueDeviceId=uniqueDeviceId;
-                    res.send('1');
-                    res.end();
-                  }
-              })
-            }
-        })
-      }
-        else
-        {
           console.log('NE VALJA ')
           if(req.headers.aplikacija) {
             console.log('aplikacija')
@@ -436,14 +432,74 @@ app.post('/register',function(req,res)
             res.writeHead(302,{'Location':'/register'})
           }
           res.end();
-        }
-    }
+      }
+    
   }
   catch(err){
     console.log("Error - /register :"+err);
   }
 })
+app.post("/deviceregistration",function(req,res)
+{
+  try
+  {
+    var respObj={};
+    
+      if(req.session||req.session.user||req.session.user.email)
+      {
+        respObj.status=-1;
+        respObj.message="Full user already exists";
+        res.send(respObj);
+        res.end();
+      }
+      else
+      {
+        if(req.body.registrationId&&req.body.uniqueDeviceId)
+        {
+          var users=db.collection("users");
+          users.findOne({uniqueDeviceId:req.body.uniqueDeviceId},function(err,obj)
+          {
+              if(obj)
+              {
+                respObj.status=-2;
+                respObj.message="Device already exists";
+                res.send(respObj);
+                res.end();
+              }
+              else
+              {
+                users.insert({uniqueDeviceId:req.body.uniqueDeviceId,userId:req.body.registrationId},function(err,res)
+                {
+                  if(err)console.log(err);
+                  else
+                  {
+                    req.session.user.uniqueDeviceId=req.body.uniqueDeviceId;//ONLY UNIQUE DEVICE ID FOR NOW
+                    
+                    respObj.status=1;
+                    respObj.message="Device successfully inserted";
+                    res.send(respObj);
+                    res.end();
+                  }
+                })
+              }
+          })
 
+        }
+        else
+        {
+          respObj.status=0;
+          respObj.message="Invalid request";
+          res.send(respObj);
+          res.end();
+        }
+      }
+  }
+  catch(err)
+  {
+    console.log('Error on device registration');
+    console.log(err);
+  }
+})
 app.post("/login",function(req,res)
 {
   try{
@@ -664,39 +720,71 @@ app.post('/endpoint', function(req, res)
 app.post('/alertpoint',function(req,res)
 {
   try{
+    var users=db.collection("users");
+    var alerts=db.collection('alerts');
     res.header('Access-Control-Allow-Credentials', 'true');
-    
-    if(req.session && req.session.user && req.session.user.email)
+    var obj={}
+    //obj.email=req.session.user.email;
+    //if(resp.id)obj.userId=resp.id;
+    if(req.body.cena)obj.cenalow=Number(req.body.cena[0]);//dupli kod???????(filip)
+    if(req.body.cena)//
     {
-      var users=db.collection("users");
-      var alerts=db.collection('alerts');
+      if(req.body.cena[0])obj.cenalow=Number(req.body.cena[0]);
+      if(req.body.cena[1])obj.cenahigh=Number(req.body.cena[1]);
+    }
+    if(req.body.kvadratura)
+    {
+      if(req.body.kvadratura[0])obj.kvadraturalow=Number(req.body.kvadratura[0]);
+      if(req.body.kvadratura[1])obj.kvadraturahigh=Number(req.body.kvadratura[1]);
+    }
+    
+    if(req.body.roomNumber)obj.brojsoba=Number(req.body.roomNumber);
+    obj.vrsta=req.body.vrsta;
+    obj.lokacija=req.body.lokacija;
+    obj.namena=req.body.namena;
+    obj.nazivAlerta=req.body.ime;
+    //console.log(obj);
+    // console.log('ovde sam');
+    
+    if((req.session && req.session.user && req.session.user.email))
+    {
+     
       //console.log(req.body)
       users.findOne({email:req.session.user.email},function(err,resp)//THISmight be stored in session so reqeust from database is not necessary
       {
         if(resp)
         {
-          var obj={}
           obj.email=req.session.user.email;
           if(resp.id)obj.userId=resp.id;
-          if(req.body.cena)obj.cenalow=Number(req.body.cena[0]);//dupli kod???????(filip)
-          if(req.body.cena)//
+          alerts.insert(obj,function(err)
           {
-            if(req.body.cena[0])obj.cenalow=Number(req.body.cena[0]);
-            if(req.body.cena[1])obj.cenahigh=Number(req.body.cena[1]);
-          }
-          if(req.body.kvadratura)
-          {
-            if(req.body.kvadratura[0])obj.kvadraturalow=Number(req.body.kvadratura[0]);
-            if(req.body.kvadratura[1])obj.kvadraturahigh=Number(req.body.kvadratura[1]);
-          }
-          
-          if(req.body.roomNumber)obj.brojsoba=Number(req.body.roomNumber);
-          obj.vrsta=req.body.vrsta;
-          obj.lokacija=req.body.lokacija;
-          obj.namena=req.body.namena;
-          obj.nazivAlerta=req.body.ime;
-          //console.log(obj);
-          // console.log('ovde sam');
+            if(err) 
+            {
+              console.log(err)
+            } else 
+            {
+              res.end('1')
+            }
+          })
+        }
+        else
+        {
+          req.session.user=null;
+          res.end('-1');
+        }
+        
+      })
+    }
+    else if(req.session&&req.session.user&&req.session.user.uniqueDeviceId&&req.session.user.registrationId)
+    {
+      // we have the device only
+      users.findOne({uniqueDeviceId:req.session.user.uniqueDeviceId},function(err,resp)//THISmight be stored in session so reqeust from database is not necessary
+      {
+        if(resp)
+        {
+          obj.uniqueDeviceId=req.session.user.uniqueDeviceId;
+          obj.registrationId=req.session.user.registrationId;
+          obj.userId=resp.id;
           alerts.insert(obj,function(err)
           {
             if(err) 
@@ -732,18 +820,32 @@ app.post('/getalerts', function(req,res)
     var alerts=db.collection('alerts');
     var matching;
     var responseToUser=[];
-    
+    var queryObj={};
     if(req.session && req.session.user && req.session.user.email)
     {
+        queryObj={"email":req.session.user.email}
+    }
+    else if(req.session && req.session.user && req.session.user.uniqueDeviceId)
+    {
+        queryObj={"uniqueDeviceId":req.session.user.uniqueDeviceId}
+    }
+    else
+    {
+      console.log("/getalerts - Greska - Session,User,Email");
+      res.send('0');
+      res.end();
+      return;
+    }
       //console.log('IMA SESIJU');
       ///console.log(req.session);
-      alerts.find({"email":req.session.user.email}).sort({nazivAlerta:1}).toArray(function(err,odg)
+      alerts.find(queryObj).sort({nazivAlerta:1}).toArray(function(err,odg)
       {
         //console.log('ODGOVOR:');
         //console.log(odg);
         if(odg.length)
         {
           if(odg[0].userId)matching=db.collection(odg[0].userId.toString());
+          
           if(!odg)console.log('odg ne vaja');
           async.eachSeries(odg,function(alert,callb)
           {
@@ -777,13 +879,9 @@ app.post('/getalerts', function(req,res)
         
         
       });
-    }
-    else
-    {
-      console.log("/getalerts - Greska - Session,User,Email");
-      res.send('0');
-      res.end();
-    }
+    
+    
+   
   }
   catch(err){
     console.log("Error - /getalerts :" + err);
@@ -792,18 +890,28 @@ app.post('/getalerts', function(req,res)
 app.post('/deletealert', function(req,res)
 {
   try{
-    if(req.session && req.session.user && req.session.user.email && req.body && req.body.id){
-      var alerts=db.collection('alerts');
-      console.log(req.session.user.email);
-      //console.log(req);
-      //sql.select('delete FROM alerts WHERE email="'+req.session.user[0].email+'" AND id = '+req.body.id,function(odg) {
-      console.log('delete')
-      console.log(req.body);
+    if(req.body && req.body.id)
+    {
       var id = req.body.id;
       var o_id = new ObjectId(id);
-      alerts.findOne({"email":req.session.user.email,"_id":o_id},{},function(err,obj)
+      var queryObj;
+      if(req.session && req.session.user && req.session.user.email)
       {
-          alerts.deleteOne({"email":req.session.user.email,"_id":o_id},function(err,odg)
+        queryObj={"email":req.session.user.email,"_id":o_id};
+      }
+      else if (req.session && req.session.user && req.session.user.uniqueDeviceId)
+      {
+        queryObj={"uniqueDeviceId":req.session.user.uniqueDeviceId,"_id":o_id};
+      }
+      var alerts=db.collection('alerts');
+      //console.log(req.session.user.email);
+     
+      console.log('delete')
+      //console.log(req.body);
+      
+      alerts.findOne(queryObj,{},function(err,obj)
+      {
+          alerts.deleteOne(queryObj,function(err,odg)
           { 
             if(err)console.log(err)
             else
@@ -821,7 +929,8 @@ app.post('/deletealert', function(req,res)
             
           })
       })
-    }else{
+    }else
+    {
       console.log("/deletealert  - Greska - Session,User,Email,Body,Id");
       res.end()
     }
@@ -830,7 +939,7 @@ app.post('/deletealert', function(req,res)
     console.log("Error - /deletealert :" + err);
   }
 });
-app.post('/givealerts',function(req,res)
+app.post('/givealerts',function(req,res)//this has a flaw in order to-- everyone can see anyones matchings!!!
 {
   try{
     if(req.session && req.body && req.body.idOfAlert && req.body.pageNumAlert){

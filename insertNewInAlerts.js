@@ -124,11 +124,20 @@ var insert=function(Advert)
 				                    //console.log('UBACIO U TABELU');
 				                    if(err)console.log(err);
 								});
-								collection.ensureIndex( { "timestamp": 1 }, { expireAfterSeconds: 60*60*24*10 } );//10 days
+								//collection.ensureIndex( { "timestamp": 1 }, { expireAfterSeconds: 60*60*24*10 } );//10 days
 								(function(alert)
 									{
-											
-										users.findOne({email:alert.email},function(err,result)
+										var queryObj={};
+
+										if(alert.email)
+										{
+											queryObj={"email":alert.email};
+										}
+										else if(alert.uniqueDeviceId)
+										{
+											queryObj={"uniqueDeviceId":alert.uniqueDeviceId};
+										}
+										users.findOne(queryObj,function(err,result)
 										{
 											if(result)
 											{
