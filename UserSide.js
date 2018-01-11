@@ -8,9 +8,7 @@ var ObjectId = require('mongodb').ObjectId;
 var exec=require('child_process').exec;
 var mail=require("./mail");
 var fs=require('fs');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy
-const FacebookStrategy = require('passport-facebook').Strategy;
+
 var registerHtmlString;
 fs.readFile('public/register.html',function(err,res)
 {
